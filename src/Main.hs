@@ -1,7 +1,6 @@
 module Main where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Data.List              (intercalate)
 import           Priv                   (MonadPriv, Priv, PrivT, liftPriv,
                                          runPrivT)
 
@@ -11,6 +10,21 @@ data User = MkUser
   , active :: Bool
   , logins :: Integer
   } deriving (Show, Eq)
+
+data UnmaskedUser = MkUnmaskedUser
+  { _name   :: String
+  , _guid   :: Integer
+  , _active :: Bool
+  , _logins :: Integer
+  } deriving (Show, Eq)
+
+unmask :: MonadPriv m => User -> m UnmaskedUser
+unmask user = do
+  n <- liftPriv $ name user
+  g <- liftPriv $ guid user
+  let a = active user
+  let l = logins user
+  return $ MkUnmaskedUser n g a l
 
 newUser :: String -> Integer -> User
 newUser name guid = MkUser (pure name) (pure guid) True 0
@@ -27,22 +41,10 @@ justin = deactivate . login . login $ newUser "Justin" 666
 wrapCurly :: String -> String
 wrapCurly s = "{" ++ s ++ "}"
 
-showUserPriv :: (MonadPriv m) => m User -> m String
-showUserPriv user' = do
-  user <- user'
-  name' <- liftPriv $ name user
-  guid' <- liftPriv $ guid user
-  return . wrapCurly $ intercalate ", "
-    [ "name = " ++ name'
-    , "guid = " ++ show guid'
-    , "active = " ++ show (active user)
-    , "logins = " ++ show (logins user)
-    ]
-
 demo :: PrivT IO ()
 demo = do
-  s <- showUserPriv $ pure justin
-  liftIO $ putStrLn s
+  s <- unmask justin
+  liftIO $ print s
 
 main :: IO ()
 main = do
