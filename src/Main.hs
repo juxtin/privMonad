@@ -1,13 +1,13 @@
 module Main where
 
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Phi                    (MonadPrivileged, Privileged,
-                                         PrivilegedT, liftPHI, runPrivilegedT)
-import Data.List (intercalate)
+import           Control.Monad.IO.Class (liftIO)
+import           Data.List              (intercalate)
+import           Priv                   (MonadPriv, Priv, PrivT, liftPriv,
+                                         runPrivT)
 
 data User = MkUser
-  { name :: Privileged String
-  , guid :: Privileged Integer
+  { name   :: Priv String
+  , guid   :: Priv Integer
   , active :: Bool
   , logins :: Integer
   } deriving (Show, Eq)
@@ -27,11 +27,11 @@ justin = deactivate . login . login $ newUser "Justin" 666
 wrapCurly :: String -> String
 wrapCurly s = "{" ++ s ++ "}"
 
-showUserPHI :: (MonadPrivileged m) => m User -> m String
-showUserPHI user' = do
+showUserPriv :: (MonadPriv m) => m User -> m String
+showUserPriv user' = do
   user <- user'
-  name' <- liftPHI $ name user
-  guid' <- liftPHI $ guid user
+  name' <- liftPriv $ name user
+  guid' <- liftPriv $ guid user
   return . wrapCurly $ intercalate ", "
     [ "name = " ++ name'
     , "guid = " ++ show guid'
@@ -39,16 +39,16 @@ showUserPHI user' = do
     , "logins = " ++ show (logins user)
     ]
 
-demo :: PrivilegedT IO ()
+demo :: PrivT IO ()
 demo = do
-  s <- showUserPHI $ pure justin
+  s <- showUserPriv $ pure justin
   liftIO $ putStrLn s
 
 main :: IO ()
 main = do
-  putStrLn "Without the PHI Monad:"
+  putStrLn "Without the Priv Monad:"
   print justin
   putStrLn ""
-  putStrLn "With the PHI Monad:"
-  runPrivilegedT demo
+  putStrLn "With the Priv Monad:"
+  runPrivT demo
   return ()
