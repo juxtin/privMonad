@@ -13,24 +13,20 @@ import qualified Priv                 as P
 hide :: a -> P.Priv a
 hide = pure
 
-instance FromJSON (P.Priv String) where
-  parseJSON = withText "Priv String" $ \text ->
-    pure $ hide (T.unpack text)
-
-instance FromJSON (P.Priv Integer) where
-  parseJSON = withScientific "Priv Integer" $
-    pure . hide . round
+instance FromJSON a => FromJSON (P.Priv a) where
+  parseJSON = fmap hide . parseJSON
 
 data Patient = Patient
   { name           :: P.Priv String
   , age            :: P.Priv Integer
+  , dead           :: P.Priv Bool
   , favoriteNumber :: Integer
   } deriving (Generic, Show)
 
 instance FromJSON Patient
 
 jJson :: B.ByteString
-jJson = "{\"name\":\"Justin\",\"age\":666,\"favoriteNumber\":13}"
+jJson = "{\"name\":\"Justin\",\"age\":666,\"favoriteNumber\":13,\"dead\":true}"
 
 justin :: Patient
 justin = let (Just j) = decode jJson in
